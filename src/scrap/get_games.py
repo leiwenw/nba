@@ -4,8 +4,11 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, date
 
-year = 2013
-teams = [{'name': 'Boston Celtics', 'prefix_1': 'bos', 'prefix_2': 'boston-celtics'}]
+year = 2015
+teams = [
+    {'name': 'Boston Celtics', 'prefix_1': 'bos', 'prefix_2': 'boston-celtics'},
+    {'name': 'San Antonio Spurs', 'prefix_1': 'sa', 'prefix_2': 'san-antonio-spurs'},
+    ]
 BASE_URL = 'http://espn.go.com/nba/team/schedule/_/name/{0}/year/{1}/{2}'
 BASE_GAME_URL = 'http://espn.go.com/nba/boxscore?gameId={0}'
 
@@ -15,17 +18,16 @@ home_team = []
 home_team_score = []
 visit_team = []
 visit_team_score = []
-for row in teams:
-# for index, row in teams[:1].iterrows():
-  _team = row['name']
-  print(_team)
-  r = requests.get(BASE_URL.format(row['prefix_1'], year, row['prefix_2']))
+for team in teams:
+  team_name = team['name']
+  print(team_name)
+  r = requests.get(BASE_URL.format(team['prefix_1'], year, team['prefix_2']))
   table = BeautifulSoup(r.text).table
+  print table
   for row in table.find_all('tr')[1:]:
-  # for row in table.find_all('tr')[1:3]:
-    print row
     columns = row.find_all('td')
     try: 
+      #print str(columns[2])
       _id = columns[2].a['href'].split('?id=')[1]
       _home = True if columns[1].li.text == 'vs' else False
       _other_team = columns[1].find_all('a')[1]['href']
@@ -34,6 +36,7 @@ for row in teams:
       _other_team = _other_team.values[0]
       _score = columns[2].a.text.split(' ')[0].split('-')
       _won = True if columns[2].span.text == 'W' else False
+
 
       game_id.append(_id)
       home_team.append(_team if _home else _other_team)
