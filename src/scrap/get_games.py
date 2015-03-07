@@ -16,6 +16,7 @@ begin_months = ['Oct','Nov','Dec']
 BASE_URL = 'http://espn.go.com/nba/team/schedule/_/name/{0}/year/{1}/{2}'
 BASE_GAME_URL = 'http://espn.go.com/nba/boxscore?gameId={0}'
 
+print teams
 game_id = []
 dates = []
 home_team = []
@@ -56,7 +57,7 @@ for team in teams:
       
       date = month + " " + day + " " + str(year)
       dateobj = datetime.strptime(date, '%b %d %Y')
-      print dateobj.strftime("%b %d, %Y") + " " + opponent + " " + str(home) +  "<br>"
+      print dateobj.strftime("%b %d, %Y") + " " + opponent + " " + str(home)
 
 dic = {'id': game_id, 'date': dates, 'home_team': home_team, 'visit_team': visit_team, 
     'home_team_score': home_team_score, 'visit_team_score': visit_team_score}
