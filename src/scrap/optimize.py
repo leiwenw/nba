@@ -1,15 +1,20 @@
 #!/usr/bin/python
 import espn
+import itertools
 from datetime import datetime, date
+from scipy.stats import norm
+
+stat_categories = ['fg', 'ft', 'ptm3', 'pts', 'reb', 'ast', 'st', 'blk', 'to']
+score_mode = ['stats_season', 'stats_last5']
+my_team = [3975, 2394, 4249, 215, 3015, 4257, 2758, 609, 1015]
+my_potentials =[]
 
 def main():
-  stat_categories = ['fg', 'ft', 'ptm3', 'pts', 'reb', 'ast', 'st', 'blk', 'to']
-  my_team = [3975, 2394, 4249, 215, 3015, 4257, 2758, 609, 1015]
-  my_team_stats = {}
-  my_potentials =[]
+  my_team_stats = {} #dict with all players and their season, last5, and total stats
+  set_max = {} #dict of the max stats
+  all_sets_stat = [] #list of all possible combos, and their respective stats
+
   regenerate = 0
-  season_or_last = 'stats_last5' #options are stats_season or stats_last5
-  season_or_last = 'stats_season' #options are stats_season or stats_last5
   active_players = 6
 
   print "Optimize"
@@ -24,19 +29,78 @@ def main():
     num_games = espn.get_num_games(player_stats['team'], schedule_dic, adate)
 
     stats_week = {}
-    for cate in stat_categories:
-      if (cate == 'fg' or cate == 'ft'):
-        stats_week[cate] = player_stats[season_or_last][cate]
-      else:
-        stats_week[cate] = player_stats[season_or_last][cate] * num_games
+    for mode in score_mode:
+      stats_week[mode] = {}
+      for cate in stat_categories:
+        if (cate == 'fg' or cate == 'ft'):
+          stats_week[mode][cate] = player_stats[mode][cate]
+        else:
+          stats_week[mode][cate] = player_stats[mode][cate] * num_games
 
     player_stats['stats_week'] = stats_week
     player_stats['num_games'] = num_games
     my_team_stats[player_id] = player_stats
-  print my_team_stats
+  #print my_team_stats
 
+  all_sets = find_combos(my_team, active_players)
+  print all_sets
+
+  #calculate combo scores
+  for aset in all_sets:
+    set_stat = {}
+    set_stat['set'] = aset
+    for mode in score_mode:
+      set_stat[mode] = {}
+      for cate in stat_categories:
+        set_stat[mode][cate] = 0
+        for player_id in aset:
+          if (cate == 'fg' or cate == 'ft'):
+            set_stat[mode][cate] += my_team_stats[player_id]['stats_week'][mode][cate]/active_players
+          else:
+            set_stat[mode][cate] += my_team_stats[player_id]['stats_week'][mode][cate]
+
+    all_sets_stat.append(dict(set_stat))
+  
+  #figure out max stats for each category
+  for mode in score_mode:
+    set_max[mode] = {}
+
+  for set_stat in all_sets_stat:
+    for player_id in set_stat['set']:
+      print my_team_stats[player_id]['name'] + " " + str(my_team_stats[player_id]['stats_week']['stats_season']['ft']) + " " + str(my_team_stats[player_id]['stats_week']['stats_season']['pts'])
+    print set_stat
+
+    for mode in score_mode:
+      for cate in stat_categories:
+        if cate not in set_max[mode]:
+          set_max[mode][cate] = float(set_stat[mode][cate])
+        elif cate == 'to' and set_stat[mode][cate] < set_max[mode][cate]:
+          set_max[mode][cate] = float(set_stat[mode][cate])
+        elif cate != 'to' and set_stat[mode][cate] > set_max[mode][cate]:
+          set_max[mode][cate] = float(set_stat[mode][cate])
+    set_stat['score'] = 0
+
+  #print all_sets_stat
+  norm.cdf(1.96)
+  print set_max
+  #print_excel(all_sets_stat)
+
+def print_excel(all_sets_stat):
+  for mode in score_mode:
+    print "*********************************************************************************\n\n"
+    for set_stat in all_sets_stat:
+      for cate in stat_categories:
+        print(str(set_stat[mode][cate]) + "\t"),
+      print ""
+    print "*********************************************************************************\n\n"
+
+def find_combos(my_team, active_players):
+  #my_team = [0,1,2,3,4,5,6,7,8] #for testing
+  all_sets = list(itertools.combinations(my_team, active_players))
+  return all_sets
+
+def find_combos_dumb(my_team, active_players):
   #find all combos
-  #my_team = [0,1,2,3,4,5,6,7,8]
   all_sets = []
   for a in range(0,4):
     working_set = []
@@ -59,46 +123,7 @@ def main():
         working_set.pop()
       working_set.pop()
     working_set.pop()
-  #print all_sets
-
-  #calculate combo scores
-  all_sets_stat = []
-  for aset in all_sets:
-    set_stat = {}
-    set_stat['set'] = aset
-    for cate in stat_categories:
-      set_stat[cate] = 0
-    for player_id in aset:
-      for cate in stat_categories:
-        if (cate == 'fg' or cate == 'ft'):
-          set_stat[cate] += my_team_stats[player_id]['stats_week'][cate]/active_players
-        else:
-          set_stat[cate] += my_team_stats[player_id]['stats_week'][cate]
-
-    all_sets_stat.append(dict(set_stat))
-  
-  set_max = {}
-  #for cate in stat_categories:
-  #  set_max[cate] = 0
-
-  for set_stat in all_sets_stat:
-    for player_id in set_stat['set']:
-      print my_team_stats[player_id]['name'] + " " + str(my_team_stats[player_id]['stats_week']['ft']) + " " + str(my_team_stats[player_id]['stats_week']['pts'])
-    print set_stat
-
-    for cate in stat_categories:
-      if cate not in set_max:
-        set_max[cate] = set_stat[cate]
-      elif cate == 'to' and set_stat[cate] < set_max[cate]:
-        set_max[cate] = set_stat[cate]
-      elif set_stat[cate] > set_max[cate]:
-        set_max[cate] = set_stat[cate]
-
-
-    set_stat['score'] = 0
-
-  #print all_sets_stat
-  print set_max
+  return all_sets
 
 if __name__ == "__main__":
   main()
