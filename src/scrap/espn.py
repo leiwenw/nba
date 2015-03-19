@@ -3,8 +3,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import numpy as np
-from datetime import datetime, date
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 import simplejson, json
 
 #*******************************************************************
@@ -26,11 +25,22 @@ def get_num_games(team_key1, schedule_dic, adate):
       #print game['date']
       games_this_week += 1
 
-
-  #print "Begin: " + str(begin_date) + ". End: " + str(end_date)
-  #print games_this_week
   return games_this_week
 
+#*******************************************************************
+# get_week
+#*******************************************************************
+def get_week(adate):
+  begin_date = adate
+  end_date = adate
+  
+  while (begin_date.weekday() != 0):
+    begin_date = begin_date - timedelta(days=1)
+
+  while (end_date.weekday() != 6):
+    end_date = end_date + timedelta(days=1)
+
+  return "Begin: " + str(begin_date) + ". End: " + str(end_date) + "."
 
 #*******************************************************************
 # get_teams
